@@ -814,7 +814,15 @@
     const banner = document.getElementById('ats-auto-banner');
     const statusEl = document.getElementById('ats-banner-status');
     if (banner) {
-      banner.className = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+      // SVG-safe class manipulation
+      banner.classList.remove('success', 'error', 'working');
+      if (type === 'success') {
+        banner.classList.add('success');
+      } else if (type === 'error') {
+        banner.classList.add('error');
+      } else {
+        banner.classList.add('working');
+      }
     }
     if (statusEl) statusEl.textContent = status;
   }

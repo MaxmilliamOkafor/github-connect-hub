@@ -252,7 +252,226 @@ body {
   color: #00d4ff;
 }
 
-/* ATS Match Section */
+/* AI Match Analysis Panel */
+.ai-match-analysis {
+  background: linear-gradient(135deg, rgba(15,15,35,0.95) 0%, rgba(26,26,62,0.95) 100%);
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.match-panel-header {
+  margin-bottom: 12px;
+}
+
+.panel-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  font-size: 20px;
+  background: linear-gradient(135deg, #7c3aed, #00d4ff);
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.panel-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.panel-subtitle {
+  display: block;
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+}
+
+.gauge-container {
+  margin-bottom: 14px;
+}
+
+.ats-match-gauge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(0,0,0,0.35);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.gauge-circle {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.gauge-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.gauge-bg {
+  fill: none;
+  stroke: rgba(255,255,255,0.1);
+  stroke-width: 8;
+}
+
+.gauge-progress {
+  fill: none;
+  stroke: #00d4ff;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease-in-out, stroke 0.3s;
+}
+
+.gauge-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.gauge-percentage {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.gauge-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.gauge-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.gauge-subtitle {
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+}
+
+.keyword-count-badge {
+  font-size: 10px;
+  color: #00d4ff;
+  background: rgba(0,212,255,0.15);
+  padding: 3px 10px;
+  border-radius: 10px;
+  display: inline-block;
+  margin-top: 4px;
+  width: fit-content;
+}
+
+.keywords-container {
+  background: rgba(0,0,0,0.25);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.keyword-match-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.keyword-icon {
+  font-size: 14px;
+}
+
+.keyword-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.keyword-description {
+  font-size: 10px;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 10px;
+  line-height: 1.35;
+}
+
+.keyword-section {
+  margin-bottom: 10px;
+}
+
+.keyword-section:last-child {
+  margin-bottom: 0;
+}
+
+.keyword-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.keyword-section.priority-high .section-title { color: #ff6b6b; }
+.keyword-section.priority-medium .section-title { color: #ffa502; }
+.keyword-section.priority-low .section-title { color: #00d4ff; }
+
+.section-count {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.08);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.keyword-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.keyword-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.keyword-chip.matched {
+  background: rgba(46,213,115,0.18);
+  border: 1px solid rgba(46,213,115,0.35);
+  color: #2ed573;
+}
+
+.keyword-chip.missing {
+  background: rgba(255,71,87,0.12);
+  border: 1px solid rgba(255,71,87,0.25);
+  color: #ff4757;
+}
+
+.chip-icon {
+  font-size: 9px;
+}
+
+.keyword-chip.matched .chip-icon { color: #2ed573; }
+.keyword-chip.missing .chip-icon { color: #ff4757; }
+
+/* ATS Match Section (legacy) */
 .ats-match-section {
   background: rgba(0,0,0,0.3);
   border-radius: 8px;

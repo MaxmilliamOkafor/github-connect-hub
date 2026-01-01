@@ -86,8 +86,72 @@
 
       <!-- Generated Documents -->
       <div class="documents-card hidden" id="documentsCard">
-        <!-- ATS Match Score -->
-        <div class="ats-match-section" id="atsMatchSection">
+        <!-- AI Match Analysis Panel -->
+        <div class="ai-match-analysis" id="aiMatchAnalysis">
+          <div class="match-panel-header">
+            <div class="panel-logo">
+              <span class="logo-icon">🎯</span>
+              <div class="logo-text">
+                <span class="panel-title">AI Match Analysis</span>
+                <span class="panel-subtitle">Powered by ATS Tailor</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="gauge-container" id="gaugeContainer">
+            <div class="ats-match-gauge">
+              <div class="gauge-circle">
+                <svg viewBox="0 0 100 100" class="gauge-svg">
+                  <circle class="gauge-bg" cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8"/>
+                  <circle class="gauge-progress" id="matchGaugeCircle" cx="50" cy="50" r="45" fill="none" stroke="#00d4ff" stroke-width="8" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" transform="rotate(-90 50 50)"/>
+                </svg>
+                <div class="gauge-text">
+                  <span class="gauge-percentage" id="matchPercentage">0%</span>
+                </div>
+              </div>
+              <div class="gauge-label">
+                <span class="gauge-title">Profile Match</span>
+                <span class="gauge-subtitle" id="matchSubtitle">Click "Tailor" to analyze your match score</span>
+                <span class="keyword-count-badge" id="keywordCountBadge">0 of 0 keywords matched</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="keywords-container" id="keywordsContainer">
+            <div class="keyword-match-header">
+              <span class="keyword-icon">🔍</span>
+              <span class="keyword-title">Keyword Match</span>
+            </div>
+            <p class="keyword-description">See which job keywords match your profile and what's missing to improve your score.</p>
+            
+            <div class="keyword-section priority-high" id="highPrioritySection">
+              <div class="keyword-section-header">
+                <span class="section-title">High Priority</span>
+                <span class="section-count" id="highPriorityCount">0/0</span>
+              </div>
+              <div class="keyword-chips" id="highPriorityChips"></div>
+            </div>
+            
+            <div class="keyword-section priority-medium" id="mediumPrioritySection">
+              <div class="keyword-section-header">
+                <span class="section-title">Medium Priority</span>
+                <span class="section-count" id="mediumPriorityCount">0/0</span>
+              </div>
+              <div class="keyword-chips" id="mediumPriorityChips"></div>
+            </div>
+            
+            <div class="keyword-section priority-low" id="lowPrioritySection">
+              <div class="keyword-section-header">
+                <span class="section-title">Low Priority</span>
+                <span class="section-count" id="lowPriorityCount">0/0</span>
+              </div>
+              <div class="keyword-chips" id="lowPriorityChips"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ATS Match Section (legacy compact view) -->
+        <div class="ats-match-section hidden" id="atsMatchSection">
           <div class="ats-match-header">
             <span class="ats-label">ATS Match</span>
             <span class="ats-score" id="atsMatchScore">0%</span>
@@ -270,6 +334,8 @@
     </footer>
   </div>
 
+  <script src="keyword-extractor.js"></script>
+  <script src="match-ui.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

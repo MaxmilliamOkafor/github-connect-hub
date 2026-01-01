@@ -431,29 +431,85 @@ class ATSTailor {
       coverSize.textContent = `${sizeKB} KB`;
     }
     
-    // Update ATS match score
-    const atsScore = document.getElementById('atsMatchScore');
-    const atsSection = document.getElementById('atsMatchSection');
-    const atsKeywords = document.getElementById('atsKeywords');
-    const matchedKeywords = document.getElementById('matchedKeywords');
-    const missingKeywords = document.getElementById('missingKeywords');
+    // Update AI Match Analysis Panel with new UI
+    this.updateMatchAnalysisUI();
+  }
+
+  updateMatchAnalysisUI() {
+    const matchScore = this.generatedDocuments.matchScore || 0;
+    const matchedKeywords = this.generatedDocuments.matchedKeywords || [];
+    const missingKeywords = this.generatedDocuments.missingKeywords || [];
+    const totalKeywords = matchedKeywords.length + missingKeywords.length;
     
-    if (atsScore && this.generatedDocuments.matchScore) {
-      atsScore.textContent = `${this.generatedDocuments.matchScore}%`;
-      atsSection?.classList.remove('hidden');
+    // Update gauge circle (SVG-safe using setAttribute)
+    const gaugeCircle = document.getElementById('matchGaugeCircle');
+    if (gaugeCircle) {
+      const circumference = 2 * Math.PI * 45; // ~283
+      const dashOffset = circumference - (matchScore / 100) * circumference;
+      gaugeCircle.setAttribute('stroke-dashoffset', dashOffset.toString());
       
-      // Show keywords
-      if (atsKeywords && (this.generatedDocuments.matchedKeywords?.length || this.generatedDocuments.missingKeywords?.length)) {
-        atsKeywords.classList.remove('hidden');
-        
-        if (matchedKeywords && this.generatedDocuments.matchedKeywords?.length) {
-          matchedKeywords.textContent = `✓ ${this.generatedDocuments.matchedKeywords.slice(0, 8).join(', ')}`;
-        }
-        
-        if (missingKeywords && this.generatedDocuments.missingKeywords?.length) {
-          missingKeywords.textContent = `⚠ Missing: ${this.generatedDocuments.missingKeywords.slice(0, 5).join(', ')}`;
-        }
-      }
+      // Update color based on score
+      let strokeColor = '#ff4757'; // red < 50%
+      if (matchScore >= 90) strokeColor = '#2ed573';
+      else if (matchScore >= 70) strokeColor = '#00d4ff';
+      else if (matchScore >= 50) strokeColor = '#ffa502';
+      gaugeCircle.setAttribute('stroke', strokeColor);
+    }
+    
+    // Update percentage text
+    const matchPercentage = document.getElementById('matchPercentage');
+    if (matchPercentage) matchPercentage.textContent = `${matchScore}%`;
+    
+    // Update subtitle and badge
+    const matchSubtitle = document.getElementById('matchSubtitle');
+    const keywordCountBadge = document.getElementById('keywordCountBadge');
+    
+    if (matchSubtitle && totalKeywords > 0) {
+      matchSubtitle.textContent = matchScore >= 90 ? 'Excellent match!' : 
+                                   matchScore >= 70 ? 'Good match' : 
+                                   matchScore >= 50 ? 'Fair match - consider improvements' : 
+                                   'Needs improvement';
+    }
+    
+    if (keywordCountBadge) {
+      keywordCountBadge.textContent = `${matchedKeywords.length} of ${totalKeywords} keywords matched`;
+    }
+    
+    // Categorize keywords (roughly 40% high, 35% medium, 25% low)
+    const highCount = Math.ceil(totalKeywords * 0.4);
+    const medCount = Math.ceil(totalKeywords * 0.35);
+    
+    const allKeywords = [...matchedKeywords, ...missingKeywords];
+    const highPriority = allKeywords.slice(0, highCount);
+    const mediumPriority = allKeywords.slice(highCount, highCount + medCount);
+    const lowPriority = allKeywords.slice(highCount + medCount);
+    
+    // Update keyword chips
+    this.updateKeywordChips('highPriorityChips', 'highPriorityCount', highPriority, matchedKeywords);
+    this.updateKeywordChips('mediumPriorityChips', 'mediumPriorityCount', mediumPriority, matchedKeywords);
+    this.updateKeywordChips('lowPriorityChips', 'lowPriorityCount', lowPriority, matchedKeywords);
+  }
+
+  updateKeywordChips(containerId, countId, keywords, matchedKeywords) {
+    const container = document.getElementById(containerId);
+    const countEl = document.getElementById(countId);
+    if (!container) return;
+    
+    container.innerHTML = '';
+    let matchCount = 0;
+    
+    keywords.forEach(kw => {
+      const isMatched = matchedKeywords.includes(kw);
+      if (isMatched) matchCount++;
+      
+      const chip = document.createElement('span');
+      chip.className = `keyword-chip ${isMatched ? 'matched' : 'missing'}`;
+      chip.innerHTML = `<span class="chip-text">${kw}</span><span class="chip-icon">${isMatched ? '✓' : '✗'}</span>`;
+      container.appendChild(chip);
+    });
+    
+    if (countEl) {
+      countEl.textContent = `${matchCount}/${keywords.length}`;
     }
   }
 
@@ -461,7 +517,11 @@ class ATSTailor {
     const indicator = document.getElementById('statusIndicator');
     const statusText = indicator?.querySelector('.status-text');
     
-    if (indicator) indicator.className = `status-indicator ${type}`;
+    if (indicator) {
+      // SVG-safe class manipulation - use classList instead of direct className assignment
+      indicator.classList.remove('ready', 'error', 'working', 'success');
+      indicator.classList.add(type);
+    }
     if (statusText) statusText.textContent = text;
   }
 
