@@ -471,6 +471,70 @@ body {
 .keyword-chip.matched .chip-icon { color: #2ed573; }
 .keyword-chip.missing .chip-icon { color: #ff4757; }
 
+/* Boost Section */
+.boost-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  text-align: center;
+}
+
+.btn-boost {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #7c3aed 0%, #00d4ff 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+}
+
+.btn-boost:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+}
+
+.btn-boost:active {
+  transform: translateY(0);
+}
+
+.btn-boost:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-boost .btn-icon {
+  font-size: 16px;
+}
+
+.btn-boost.btn-loading .btn-text::after {
+  content: '';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%, 100% { content: '...'; }
+}
+
+.boost-description {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
 /* ATS Match Section (legacy) */
 .ats-match-section {
   background: rgba(0,0,0,0.3);

@@ -155,6 +155,8 @@ class ATSTailor {
     document.getElementById('attachBoth')?.addEventListener('click', () => this.attachBothDocuments());
     document.getElementById('copyContent')?.addEventListener('click', () => this.copyCurrentContent());
     
+    // Boost Match Button
+    document.getElementById('boostMatchBtn')?.addEventListener('click', () => this.boostMatchScore());
     // Bulk Apply Dashboard
     document.getElementById('openBulkApply')?.addEventListener('click', () => {
       chrome.tabs.create({ url: chrome.runtime.getURL('bulk-apply.html') });
@@ -815,6 +817,111 @@ class ATSTailor {
       btn.disabled = false;
       btn.querySelector('.btn-text').textContent = 'Tailor CV & Cover Letter';
       setTimeout(() => progressContainer?.classList.add('hidden'), 2000);
+    }
+  }
+
+  /**
+   * Boost match score using local CV tailoring
+   * Injects missing keywords to achieve 95%+ ATS match
+   */
+  async boostMatchScore() {
+    const btn = document.getElementById('boostMatchBtn');
+    if (!btn) return;
+
+    // Check prerequisites
+    if (!this.generatedDocuments.cv) {
+      this.showToast('Generate a tailored CV first', 'error');
+      return;
+    }
+
+    if (!this.currentJob?.description) {
+      this.showToast('No job description detected', 'error');
+      return;
+    }
+
+    // Check if CVTailor is available
+    if (typeof window.CVTailor === 'undefined' || typeof window.KeywordExtractor === 'undefined') {
+      this.showToast('Tailoring modules not loaded', 'error');
+      return;
+    }
+
+    const currentScore = this.generatedDocuments.matchScore || 0;
+    if (currentScore >= 95) {
+      this.showToast('Already at 95%+ match!', 'success');
+      return;
+    }
+
+    // Set loading state
+    btn.disabled = true;
+    const originalText = btn.querySelector('.btn-text')?.textContent;
+    if (btn.querySelector('.btn-text')) {
+      btn.querySelector('.btn-text').textContent = 'Boosting...';
+    }
+    btn.classList.add('btn-loading');
+    this.setStatus('Boosting match score...', 'working');
+
+    try {
+      // Extract keywords from job description
+      const keywords = window.KeywordExtractor.extractKeywords(this.currentJob.description, 35);
+      
+      if (!keywords.all || keywords.all.length === 0) {
+        throw new Error('Could not extract keywords from job description');
+      }
+
+      // Tailor the CV
+      const tailorResult = window.CVTailor.tailorCV(
+        this.generatedDocuments.cv,
+        keywords,
+        { targetScore: 95 }
+      );
+
+      if (!tailorResult.tailoredCV) {
+        throw new Error('Tailoring failed');
+      }
+
+      // Update documents with boosted CV
+      this.generatedDocuments.cv = tailorResult.tailoredCV;
+      this.generatedDocuments.matchScore = tailorResult.matchScore;
+      this.generatedDocuments.matchedKeywords = tailorResult.matchedKeywords;
+      this.generatedDocuments.missingKeywords = tailorResult.missingKeywords;
+      
+      // Clear PDF since text has changed - user needs to regenerate
+      this.generatedDocuments.cvPdf = null;
+
+      // Save updated documents
+      await chrome.storage.local.set({ ats_lastGeneratedDocuments: this.generatedDocuments });
+
+      // Update UI
+      this.updateDocumentDisplay();
+      this.updatePreviewContent();
+      
+      const improvement = tailorResult.matchScore - currentScore;
+      const injectedCount = tailorResult.injectedKeywords.length;
+
+      this.showToast(
+        `Boosted to ${tailorResult.matchScore}%! (+${improvement}%, ${injectedCount} keywords added)`, 
+        'success'
+      );
+      this.setStatus('Boost complete', 'ready');
+
+      // Log stats for debugging
+      console.log('[ATS Tailor] Boost result:', {
+        originalScore: currentScore,
+        newScore: tailorResult.matchScore,
+        injectedKeywords: tailorResult.injectedKeywords,
+        stats: tailorResult.stats
+      });
+
+    } catch (error) {
+      console.error('Boost error:', error);
+      this.showToast(error.message || 'Boost failed', 'error');
+      this.setStatus('Error', 'error');
+    } finally {
+      btn.disabled = false;
+      if (btn.querySelector('.btn-text')) {
+        btn.querySelector('.btn-text').textContent = originalText || 'Boost to 95%+';
+      }
+      btn.classList.remove('btn-loading');
     }
   }
 
