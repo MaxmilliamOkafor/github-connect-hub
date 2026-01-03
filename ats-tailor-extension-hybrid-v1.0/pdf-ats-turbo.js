@@ -1,6 +1,6 @@
-// pdf-ats-turbo.js - 100% ATS-Parseable PDF Generator v1.1 (≤62ms for LazyApply 3X)
+// pdf-ats-turbo.js - 100% ATS-Parseable PDF Generator v1.2 (Professional Template)
 // PERFECT FORMAT: Arial 10.5pt, 0.75" margins, 1.15 line height, UTF-8 text-only
-// FIXED: Skills section formatting, no ALL CAPS skills, proper text wrapping, removed tech proficiencies spam
+// FIXED: Skills section formatting, no ALL CAPS skills, proper text wrapping, compact education
 
 (function() {
   'use strict';
@@ -40,13 +40,14 @@
       'good learning', 'communication skills', 'love for technology', 
       'able to withstand work pressure', 'system integration', 'collaboration',
       'problem-solving', 'teamwork', 'leadership', 'initiative', 'ownership',
-      'passion', 'dedication', 'motivation', 'self-starter'
+      'passion', 'dedication', 'motivation', 'self-starter', 'communication',
+      'interpersonal', 'proactive', 'detail-oriented', 'hard-working', 'team player'
     ]),
 
-    // ============ GENERATE ATS-PERFECT CV PDF (≤62ms for LazyApply 3X) ============
+    // ============ GENERATE ATS-PERFECT CV PDF (Professional Template) ============
     async generateATSPerfectCV(candidateData, tailoredCV, jobData, workExperienceKeywords = []) {
       const startTime = performance.now();
-      console.log('[PDFATSTurbo] Generating ATS-perfect CV (Arial 10.5pt, 0.75" margins, 1.15 spacing)...');
+      console.log('[PDFATSTurbo] Generating ATS-perfect CV (Professional Template)...');
 
       // Parse and format CV content
       const formattedContent = this.formatCVForATS(tailoredCV, candidateData, workExperienceKeywords);
@@ -72,7 +73,7 @@
       }
 
       const timing = performance.now() - startTime;
-      console.log(`[PDFATSTurbo] CV PDF generated in ${timing.toFixed(0)}ms (target: 62ms for LazyApply 3X)`);
+      console.log(`[PDFATSTurbo] CV PDF generated in ${timing.toFixed(0)}ms`);
 
       return {
         pdf: pdfBase64,
@@ -135,15 +136,19 @@
       const github = candidateData?.github || '';
       
       // Use location tailor if available
-      let location = candidateData?.city || candidateData?.location || 'Open to relocation';
+      let location = candidateData?.city || candidateData?.location || '';
       if (typeof window !== 'undefined' && window.ATSLocationTailor) {
         location = window.ATSLocationTailor.normalizeLocationForCV(location);
       }
 
+      // Build contact parts - only include non-empty values
+      const contactParts = [phone, email, location].filter(Boolean);
+      const linkParts = [linkedin, github].filter(Boolean);
+
       return {
         name,
-        contactLine: [phone, email, location, 'open to relocation'].filter(Boolean).join(' | '),
-        linksLine: [linkedin, github].filter(Boolean).join(' | ')
+        contactLine: contactParts.join(' | '),
+        linksLine: linkParts.join(' | ')
       };
     },
 
@@ -205,7 +210,7 @@
     },
 
     // ============ FORMAT CLEAN SKILLS SECTION ============
-    // FIXED: No ALL CAPS, proper Title Case, comma-separated, max 20 skills
+    // FIXED: No ALL CAPS, proper Title Case for categories, comma-separated, max 20 skills
     formatCleanSkillsSection(skillsText) {
       if (!skillsText) return '';
       
@@ -228,14 +233,8 @@
         const lower = s.toLowerCase();
         if (!seen.has(lower)) {
           seen.add(lower);
-          // Proper Title Case (not ALL CAPS)
-          const formatted = s.split(' ').map(word => {
-            // Keep acronyms uppercase (AWS, SQL, etc.)
-            if (word.length <= 4 && word === word.toUpperCase()) {
-              return word;
-            }
-            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-          }).join(' ');
+          // Format skill properly - keep technical acronyms uppercase
+          const formatted = this.formatSkillName(s);
           uniqueSkills.push(formatted);
         }
       });
@@ -247,65 +246,110 @@
       return coreSkills.join(', ');
     },
 
+    // ============ FORMAT SKILL NAME (Not ALL CAPS) ============
+    formatSkillName(skill) {
+      // Known technical acronyms to keep uppercase
+      const acronyms = new Set([
+        'SQL', 'AWS', 'GCP', 'API', 'REST', 'HTML', 'CSS', 'JSON', 'XML', 'SDK',
+        'CI', 'CD', 'ETL', 'ML', 'AI', 'NLP', 'LLM', 'GPU', 'CPU', 'UI', 'UX',
+        'HTTP', 'HTTPS', 'SSH', 'FTP', 'TCP', 'IP', 'DNS', 'VPN', 'CDN', 'S3',
+        'EC2', 'RDS', 'IAM', 'VPC', 'ECS', 'EKS', 'SQS', 'SNS', 'SES', 'DMS',
+        'JWT', 'OAuth', 'SAML', 'SSO', 'RBAC', 'CRUD', 'ORM', 'MVC', 'MVP',
+        'TDD', 'BDD', 'DDD', 'SOLID', 'OOP', 'FP', 'MVVM', 'NoSQL', 'SQL',
+        'iOS', 'macOS', 'JIRA', 'CI/CD', 'DevOps', 'MLOps', 'DataOps', 'GitOps'
+      ]);
+      
+      // Check if entire skill is an acronym
+      if (acronyms.has(skill.toUpperCase())) {
+        return skill.toUpperCase();
+      }
+      
+      // Handle compound skills like "Power BI", "Looker Studio"
+      return skill.split(/\s+/).map(word => {
+        const upper = word.toUpperCase();
+        if (acronyms.has(upper)) {
+          return upper;
+        }
+        // Title case for regular words
+        if (word.length <= 2) return word.toUpperCase(); // BI, AI, etc.
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }).join(' ');
+    },
+
     // ============ FORMAT EDUCATION SECTION ============
-    // FIXED: Compact single-line format per degree
+    // FIXED: Compact single-line format per degree - no multi-line spam
     formatEducationSection(educationText) {
       if (!educationText) return '';
       
       const lines = educationText.split('\n').filter(l => l.trim());
-      const formattedLines = [];
       
+      // Try to extract structured education entries
+      const entries = [];
       let currentEntry = [];
       
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
         
-        // Check if this is a new institution (usually starts with uppercase, not a date)
-        const isInstitution = /^[A-Z][a-zA-Z\s]+(?:University|College|Institute|School)/.test(trimmed) ||
-                             /^[A-Z][a-zA-Z\s]+$/.test(trimmed) && trimmed.length > 10;
+        // Check if this starts a new entry (institution name usually)
+        const isNewEntry = /^[A-Z][a-zA-Z\s]+(?:University|College|Institute|School|Academy)/i.test(trimmed) ||
+                          /^[A-Z][A-Za-z\s]+(?:\||–|-)/.test(trimmed);
         
-        if (isInstitution && currentEntry.length > 0) {
-          // Save previous entry
-          formattedLines.push(this.formatEducationEntry(currentEntry));
+        if (isNewEntry && currentEntry.length > 0) {
+          entries.push(this.formatEducationEntry(currentEntry));
           currentEntry = [trimmed];
         } else {
           currentEntry.push(trimmed);
         }
       }
       
-      // Save last entry
+      // Don't forget the last entry
       if (currentEntry.length > 0) {
-        formattedLines.push(this.formatEducationEntry(currentEntry));
+        entries.push(this.formatEducationEntry(currentEntry));
       }
       
-      return formattedLines.join('\n');
+      return entries.filter(e => e).join('\n');
     },
 
     formatEducationEntry(lines) {
-      // Try to combine into: "Institution | Degree | Date | GPA"
+      if (!lines || lines.length === 0) return '';
+      
+      // Try to extract: Institution, Degree, Date, GPA
       let institution = '';
       let degree = '';
       let date = '';
       let gpa = '';
       
+      const combinedText = lines.join(' ');
+      
+      // Extract GPA
+      const gpaMatch = combinedText.match(/(?:GPA|Grade)[:\s]*(\d+\.?\d*)/i);
+      if (gpaMatch) gpa = `GPA: ${gpaMatch[1]}`;
+      
+      // Extract date range
+      const dateMatch = combinedText.match(/(\d{4})\s*[-–]\s*(\d{4}|Present|Current)/i);
+      if (dateMatch) date = `${dateMatch[1]} - ${dateMatch[2]}`;
+      
+      // Extract degree
+      const degreeMatch = combinedText.match(/(Bachelor|Master|PhD|Doctor|Associate|Diploma|Certificate|B\.?S\.?|M\.?S\.?|B\.?A\.?|M\.?A\.?|M\.?B\.?A\.?)[^,|]*/i);
+      if (degreeMatch) degree = degreeMatch[0].trim();
+      
+      // First line is usually the institution
       for (const line of lines) {
-        if (/GPA|Grade/i.test(line)) {
-          const gpaMatch = line.match(/(?:GPA|Grade)[:\s]*(\d+\.?\d*)/i);
-          if (gpaMatch) gpa = `GPA: ${gpaMatch[1]}`;
-        } else if (/\d{4}/.test(line) && /[-–]/.test(line)) {
-          date = line.replace(/\|/g, '').trim();
-        } else if (/Bachelor|Master|PhD|Doctor|Associate|Diploma|Certificate/i.test(line)) {
-          degree = line.replace(/\|/g, '').trim();
-        } else if (line.length > 5) {
-          if (!institution) institution = line;
-          else if (!degree) degree = line;
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        
+        if (/University|College|Institute|School|Academy/i.test(trimmed)) {
+          institution = trimmed.split('|')[0].split('–')[0].trim();
+          break;
+        } else if (!institution && trimmed.length > 5) {
+          institution = trimmed.split('|')[0].split('–')[0].trim();
         }
       }
       
-      // Combine into single line
+      // Format as single line: Institution | Degree | Date | GPA
       const parts = [institution, degree, date, gpa].filter(Boolean);
-      return parts.join(' | ');
+      return parts.length > 0 ? parts.join(' | ') : lines.join(' ');
     },
 
     // ============ FORMAT CERTIFICATIONS SECTION ============
@@ -396,7 +440,7 @@
       return lines.join('\n');
     },
 
-    // ============ GENERATE WITH jsPDF (≤500ms) ============
+    // ============ GENERATE WITH jsPDF (Professional Template) ============
     async generateWithJsPDF(sections, candidateData) {
       const { jsPDF } = jspdf;
       const { font, fontSize, margins, lineHeight, pageWidth, pageHeight } = this.CONFIG;
@@ -411,14 +455,14 @@
       doc.setFont(font, 'normal');
       let yPos = margins.top;
 
-      // Helper: Add text with proper word wrap and page breaks
+      // Helper: Add text with proper word wrap and page breaks - NO CUT-OFFS
       const addText = (text, isBold = false, isCentered = false, size = fontSize.body) => {
         doc.setFontSize(size);
         doc.setFont(font, isBold ? 'bold' : 'normal');
         
         const lines = doc.splitTextToSize(text, contentWidth);
         lines.forEach(line => {
-          // Check for page break BEFORE drawing
+          // Check for page break BEFORE drawing - prevents cut-offs
           if (yPos > pageHeight - margins.bottom - 30) {
             doc.addPage();
             yPos = margins.top;
@@ -430,48 +474,52 @@
         });
       };
 
-      // Helper: Add section header
+      // Helper: Add section header with underline
       const addSectionHeader = (title) => {
-        // Check for page break
-        if (yPos > pageHeight - margins.bottom - 50) {
+        // Check for page break - need space for header + some content
+        if (yPos > pageHeight - margins.bottom - 60) {
           doc.addPage();
           yPos = margins.top;
         }
         
-        yPos += 10;
+        yPos += 12; // Space before section
         doc.setFontSize(fontSize.sectionTitle);
         doc.setFont(font, 'bold');
         doc.text(title.toUpperCase(), margins.left, yPos);
         yPos += fontSize.sectionTitle + 2;
         
         // Underline
-        doc.setDrawColor(0);
+        doc.setDrawColor(80, 80, 80);
         doc.setLineWidth(0.5);
         doc.line(margins.left, yPos - 3, pageWidth - margins.right, yPos - 3);
         yPos += 8;
       };
 
-      // NAME (centered, larger)
-      addText(sections.contact.name.toUpperCase(), true, true, fontSize.name);
-      yPos += 4;
+      // === NAME (centered, larger) ===
+      if (sections.contact.name) {
+        addText(sections.contact.name.toUpperCase(), true, true, fontSize.name);
+        yPos += 2;
+      }
 
-      // Contact line (centered)
-      addText(sections.contact.contactLine, false, true, fontSize.body);
+      // === Contact line (centered) ===
+      if (sections.contact.contactLine) {
+        addText(sections.contact.contactLine, false, true, fontSize.body);
+      }
       
-      // Links line (centered)
+      // === Links line (centered) ===
       if (sections.contact.linksLine) {
         addText(sections.contact.linksLine, false, true, fontSize.small);
       }
-      yPos += 12;
+      yPos += 10;
 
-      // PROFESSIONAL SUMMARY
+      // === PROFESSIONAL SUMMARY ===
       if (sections.summary) {
         addSectionHeader('PROFESSIONAL SUMMARY');
         doc.setFont(font, 'normal');
         addText(sections.summary, false, false, fontSize.body);
       }
 
-      // WORK EXPERIENCE
+      // === WORK EXPERIENCE ===
       if (sections.experience) {
         addSectionHeader('WORK EXPERIENCE');
         const expLines = sections.experience.split('\n');
@@ -494,16 +542,11 @@
             addText(trimmed, true, false, fontSize.body);
           }
           // Date/Location lines - NORMAL, slightly smaller
-          else if (trimmed.match(/^\d{4}/) || trimmed.match(/^[A-Z][a-z]+\s+\d{4}/)) {
+          else if (trimmed.match(/\d{4}/) || trimmed.match(/^[A-Z][a-z]+,?\s+/)) {
             doc.setFont(font, 'normal');
             addText(trimmed, false, false, fontSize.small);
           }
-          // Company names on their own line
-          else if (trimmed.match(/^[A-Z][A-Za-z\s]+$/) && trimmed.length < 50 && !trimmed.includes('-')) {
-            doc.setFont(font, 'bold');
-            addText(trimmed, true, false, fontSize.body);
-          }
-          // Everything else - NORMAL
+          // Regular text
           else {
             doc.setFont(font, 'normal');
             addText(trimmed, false, false, fontSize.body);
@@ -511,49 +554,49 @@
         });
       }
 
-      // EDUCATION - Compact format
+      // === EDUCATION (Compact format) ===
       if (sections.education) {
         addSectionHeader('EDUCATION');
-        const eduLines = sections.education.split('\n').filter(l => l.trim());
+        const eduLines = sections.education.split('\n');
+        
         eduLines.forEach(line => {
-          addText(line.trim(), false, false, fontSize.body);
+          const trimmed = line.trim();
+          if (!trimmed) return;
+          
+          // Each education entry on one line
+          doc.setFont(font, 'normal');
+          addText(trimmed, false, false, fontSize.body);
         });
       }
 
-      // SKILLS (comma-separated, proper case, NO ALL CAPS)
+      // === SKILLS (Comma-separated, proper case) ===
       if (sections.skills) {
         addSectionHeader('SKILLS');
+        doc.setFont(font, 'normal');
+        // Skills as a flowing paragraph, wrapped properly
         addText(sections.skills, false, false, fontSize.body);
       }
 
-      // CERTIFICATIONS (comma-separated)
+      // === CERTIFICATIONS (Comma-separated) ===
       if (sections.certifications) {
         addSectionHeader('CERTIFICATIONS');
+        doc.setFont(font, 'normal');
         addText(sections.certifications, false, false, fontSize.body);
       }
 
-      // NOTE: Technical Proficiencies section REMOVED
+      // Generate output
+      const pdfBlob = doc.output('blob');
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
 
-      const base64 = doc.output('datauristring').split(',')[1];
-      const blob = doc.output('blob');
-
-      return { base64, blob };
+      return { base64: pdfBase64, blob: pdfBlob };
     },
 
     // ============ GENERATE COVER LETTER PDF ============
-    async generateCoverLetterPDF(candidateData, coverLetterText, jobData) {
+    async generateCoverLetterPDF(coverLetterText, candidateData, jobData) {
       const startTime = performance.now();
       
-      // CRITICAL: Replace all greetings with "Dear Hiring Manager,"
-      let formattedCoverLetter = coverLetterText || '';
-      formattedCoverLetter = formattedCoverLetter.replace(/Dear\s+Hiring\s+Committee,?/gi, 'Dear Hiring Manager,');
-      formattedCoverLetter = formattedCoverLetter.replace(/Dear\s+Sir\/Madam,?/gi, 'Dear Hiring Manager,');
-      formattedCoverLetter = formattedCoverLetter.replace(/To\s+Whom\s+It\s+May\s+Concern,?/gi, 'Dear Hiring Manager,');
-      formattedCoverLetter = formattedCoverLetter.replace(/Dear\s+Recruiter,?/gi, 'Dear Hiring Manager,');
-      
-      // Generate filename
-      const firstName = (candidateData?.firstName || candidateData?.first_name || 'Applicant').replace(/\s+/g, '_');
-      const lastName = (candidateData?.lastName || candidateData?.last_name || '').replace(/\s+/g, '_');
+      const firstName = (candidateData?.firstName || candidateData?.first_name || 'Applicant').replace(/\s+/g, '_').replace(/[^a-zA-Z_]/g, '');
+      const lastName = (candidateData?.lastName || candidateData?.last_name || '').replace(/\s+/g, '_').replace(/[^a-zA-Z_]/g, '');
       const fileName = lastName ? `${firstName}_${lastName}_Cover_Letter.pdf` : `${firstName}_Cover_Letter.pdf`;
 
       let pdfBase64 = null;
@@ -570,48 +613,48 @@
         
         let yPos = margins.top;
         
-        // Add date
-        const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        doc.text(today, margins.left, yPos);
-        yPos += 30;
-        
-        // Add cover letter content with word wrap
-        const paragraphs = formattedCoverLetter.split('\n\n');
-        paragraphs.forEach(para => {
-          const lines = doc.splitTextToSize(para.trim(), contentWidth);
+        // Helper with page break handling
+        const addCoverText = (text, isBold = false) => {
+          doc.setFont(font, isBold ? 'bold' : 'normal');
+          const lines = doc.splitTextToSize(text, contentWidth);
           lines.forEach(line => {
-            if (yPos > pageHeight - margins.bottom - 30) {
+            if (yPos > pageHeight - margins.bottom - 20) {
               doc.addPage();
               yPos = margins.top;
             }
             doc.text(line, margins.left, yPos);
             yPos += fontSize.body * lineHeight + 2;
           });
-          yPos += 12;
+        };
+        
+        // Split cover letter into paragraphs
+        const paragraphs = coverLetterText.split('\n\n');
+        paragraphs.forEach((para, idx) => {
+          const trimmed = para.trim();
+          if (!trimmed) return;
+          
+          addCoverText(trimmed);
+          yPos += 8; // Paragraph spacing
         });
-
-        pdfBase64 = doc.output('datauristring').split(',')[1];
+        
         pdfBlob = doc.output('blob');
+        pdfBase64 = doc.output('datauristring').split(',')[1];
       } else {
-        pdfBase64 = btoa(unescape(encodeURIComponent(formattedCoverLetter)));
+        pdfBase64 = btoa(unescape(encodeURIComponent(coverLetterText)));
       }
 
       const timing = performance.now() - startTime;
       console.log(`[PDFATSTurbo] Cover Letter PDF generated in ${timing.toFixed(0)}ms`);
 
-      return {
-        pdf: pdfBase64,
-        blob: pdfBlob,
-        fileName,
-        text: formattedCoverLetter,
-        timing,
-        size: pdfBase64 ? Math.round(pdfBase64.length * 0.75 / 1024) : 0
-      };
+      return { pdf: pdfBase64, blob: pdfBlob, fileName, timing };
     }
   };
 
-  // Export to global scope
-  window.PDFATSTurbo = PDFATSTurbo;
-  
-  console.log('[ATS Hybrid] PDFATSTurbo v1.1 loaded (fixed formatting)');
+  // Export globally
+  if (typeof window !== 'undefined') {
+    window.PDFATSTurbo = PDFATSTurbo;
+  }
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PDFATSTurbo;
+  }
 })();

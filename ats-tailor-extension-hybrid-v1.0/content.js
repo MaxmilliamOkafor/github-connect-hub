@@ -1,14 +1,14 @@
-// content.js - HYBRID v1.1.0 - LazyApply 3X ULTRA-FAST Speed (≤175ms) + ALL 5.0 Features
+// content.js - HYBRID v1.2.0 - LazyApply 3X ULTRA-FAST Speed (≤175ms) + ALL 5.0 Features
 // MERGE: 4.0's proven file attach logic + 5.0's keyword extraction, tailoring, PDF generation
 // SPEED: 50% faster - 350ms → 175ms for LazyApply 3X compatibility
 // UNIQUE CV: Preserves user's companies/roles/dates, modifies only bullet phrasing per job
-// NEW: Auto-trigger extraction on ATS platforms + State persistence + Resume on return
+// FIXED: Removed localStorage resume-on-return, kept auto-trigger and orange banner persistence
 
 (function() {
   'use strict';
 
-  console.log('[ATS Tailor] HYBRID v1.1.0 LAZYAPPLY 3X ULTRA-FAST loaded on:', window.location.hostname);
-  console.log('[ATS Tailor] Features: 175ms speed + Unique CV per job + ALL 5.0 features + Auto-trigger');
+  console.log('[ATS Tailor] HYBRID v1.2.0 LAZYAPPLY 3X ULTRA-FAST loaded on:', window.location.hostname);
+  console.log('[ATS Tailor] Features: 175ms speed + Unique CV per job + Auto-trigger on ATS');
 
   // ============ CONFIGURATION ============
   const SUPABASE_URL = 'https://wntpldomgjutwufphnpg.supabase.co';
@@ -21,10 +21,6 @@
     'workable.com', 'apply.workable.com', 'icims.com',
     'oracle.com', 'oraclecloud.com', 'taleo.net'
   ];
-
-  // ============ STATE PERSISTENCE KEYS ============
-  const AUTOMATION_STATE_KEY = 'ats_automation_state';
-  const SESSION_ID_KEY = 'ats_session_id';
 
   const isSupportedHost = (hostname) =>
     SUPPORTED_HOSTS.some((h) => hostname === h || hostname.endsWith(`.${h}`));
@@ -46,65 +42,6 @@
   let tailoringInProgress = false;
   const startTime = Date.now();
   const currentJobUrl = window.location.href;
-  
-  // Generate unique session ID for this page load (to detect refresh vs click-away)
-  const pageSessionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-  // ============ STATE PERSISTENCE FUNCTIONS ============
-  function saveAutomationState(state) {
-    const data = {
-      jobUrl: window.location.href,
-      stage: state.stage, // 'extracting', 'tailoring', 'generating', 'attaching', 'complete'
-      keywords: state.keywords || null,
-      tailoredCV: state.tailoredCV || null,
-      matchScore: state.matchScore || 0,
-      timestamp: Date.now(),
-      sessionId: pageSessionId
-    };
-    try {
-      localStorage.setItem(AUTOMATION_STATE_KEY, JSON.stringify(data));
-      console.log('[ATS Tailor] State saved:', state.stage);
-    } catch (e) {
-      console.warn('[ATS Tailor] Failed to save state:', e);
-    }
-  }
-
-  function restoreAutomationState() {
-    try {
-      const saved = localStorage.getItem(AUTOMATION_STATE_KEY);
-      if (!saved) return null;
-      
-      const data = JSON.parse(saved);
-      // Only restore if same job URL and within 30 minutes
-      if (data.jobUrl === window.location.href && 
-          Date.now() - data.timestamp < 30 * 60 * 1000) {
-        return data;
-      }
-      // Clear stale state
-      localStorage.removeItem(AUTOMATION_STATE_KEY);
-      return null;
-    } catch (e) {
-      console.warn('[ATS Tailor] Failed to restore state:', e);
-      return null;
-    }
-  }
-
-  function clearAutomationState() {
-    try {
-      localStorage.removeItem(AUTOMATION_STATE_KEY);
-    } catch (e) {}
-  }
-
-  function checkIfPageRefreshed() {
-    // Check if this is a page refresh by looking at navigation type
-    const navEntries = performance.getEntriesByType('navigation');
-    if (navEntries.length > 0) {
-      const navType = navEntries[0].type;
-      return navType === 'reload';
-    }
-    // Fallback: check performance.navigation (deprecated but wider support)
-    return performance.navigation?.type === 1;
-  }
 
   // ============ STATUS TRACKING (NO GREEN BOX - REMOVED) ============
   function createStatusOverlay() {
@@ -123,7 +60,7 @@
   }
 
   // ============ STATUS BANNER (PERSISTENT - ONLY CLOSES VIA X BUTTON) ============
-  // FIXED: Removed meaningless 0% progress display
+  // FIXED: Removed meaningless 0% progress display - only shows status text
   function createStatusBanner() {
     if (document.getElementById('ats-auto-banner')) return document.getElementById('ats-auto-banner');
     
@@ -194,7 +131,11 @@
     const banner = document.getElementById('ats-auto-banner') || createStatusBanner();
     const statusEl = document.getElementById('ats-banner-status');
     if (banner) {
-      banner.className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'extracting' ? 'extracting' : '';
+      // Use classList properly for SVG compatibility
+      banner.classList.remove('success', 'error', 'extracting');
+      if (type === 'success') banner.classList.add('success');
+      else if (type === 'error') banner.classList.add('error');
+      else if (type === 'extracting') banner.classList.add('extracting');
     }
     if (statusEl) statusEl.textContent = status;
   }
@@ -479,7 +420,6 @@
       if (areBothAttached()) {
         console.log('[ATS Tailor] ⚡ Attach complete in <175ms — stopping loops');
         stopAttachLoops();
-        saveAutomationState({ stage: 'complete' });
       }
     }, 100);
 
@@ -490,7 +430,6 @@
       if (areBothAttached()) {
         console.log('[ATS Tailor] ⚡ Attach complete — stopping loops');
         stopAttachLoops();
-        saveAutomationState({ stage: 'complete' });
       }
     }, 500);
   }
@@ -643,24 +582,6 @@
     console.log('[ATS Tailor] Auto-trigger message sent for:', jobInfo.title);
   }
 
-  // ============ RESUME FROM SAVED STATE ============
-  async function resumeFromStage(stage, savedState) {
-    console.log('[ATS Tailor] Resuming from stage:', stage);
-    createStatusBanner();
-    updateBanner(`Resuming: ${stage}...`, 'working');
-    
-    if (stage === 'attaching' || stage === 'generating') {
-      // Resume attaching files
-      loadFilesAndStart();
-    } else if (stage === 'tailoring') {
-      // Resume tailoring
-      autoTailorDocuments();
-    } else if (stage === 'extracting') {
-      // Resume extraction
-      autoTriggerKeywordExtraction();
-    }
-  }
-
   // ============ AUTO-TAILOR DOCUMENTS (WITH 5.0 FEATURES) ============
   async function autoTailorDocuments() {
     if (hasTriggeredTailor || tailoringInProgress) {
@@ -682,7 +603,6 @@
 
     hasTriggeredTailor = true;
     tailoringInProgress = true;
-    saveAutomationState({ stage: 'tailoring' });
 
     createStatusBanner();
     updateBanner('Generating tailored CV & Cover Letter...', 'working');
@@ -729,7 +649,6 @@
 
       const localKeywords = await extractKeywordsLocally(jobInfo.description);
       console.log('[ATS Tailor] Extracted keywords:', localKeywords.all?.slice(0, 10));
-      saveAutomationState({ stage: 'tailoring', keywords: localKeywords });
 
       const response = await fetch(`${SUPABASE_URL}/functions/v1/tailor-application`, {
         method: 'POST',
@@ -778,7 +697,6 @@
 
       console.log('[ATS Tailor] Tailoring complete! Match score:', result.matchScore);
       updateBanner(`✅ Generated! Match: ${result.matchScore}% - Attaching files...`, 'success');
-      saveAutomationState({ stage: 'attaching', matchScore: result.matchScore });
 
       const fallbackName = `${(p.first_name || '').trim()}_${(p.last_name || '').trim()}`.replace(/\s+/g, '_') || 'Applicant';
 
@@ -909,25 +827,6 @@
 
   // ============ INITIALIZATION ============
   function initialize() {
-    // Check if this is a page refresh
-    const isRefresh = checkIfPageRefreshed();
-    
-    if (isRefresh) {
-      console.log('[ATS Tailor] Page refreshed - clearing automation state');
-      clearAutomationState();
-      // On refresh, stop all automation
-      stopAttachLoops();
-      return;
-    }
-    
-    // Check for saved state to resume
-    const savedState = restoreAutomationState();
-    if (savedState && savedState.stage !== 'complete') {
-      console.log('[ATS Tailor] Found saved state:', savedState.stage);
-      resumeFromStage(savedState.stage, savedState);
-      return;
-    }
-    
     // Normal initialization - check for upload fields and auto-trigger
     if (hasUploadFields()) {
       console.log('[ATS Tailor] Upload fields detected - triggering auto-extraction');
@@ -947,16 +846,5 @@
   } else {
     setTimeout(initialize, 500);
   }
-
-  // Also initialize when page becomes visible (user returns to tab)
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      const savedState = restoreAutomationState();
-      if (savedState && savedState.stage !== 'complete' && !tailoringInProgress) {
-        console.log('[ATS Tailor] Tab became visible - checking for resume');
-        resumeFromStage(savedState.stage, savedState);
-      }
-    }
-  });
 
 })();

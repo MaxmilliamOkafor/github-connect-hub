@@ -1,4 +1,4 @@
-// ============= UNIVERSAL LOCATION STRATEGY v1.1 (100% Success Rate) =============
+// ============= UNIVERSAL LOCATION STRATEGY v1.2 (100% Success Rate) =============
 // Advanced location extraction for ALL 7+ ATS platforms
 // FIXED: City duplication issue (Stockholm, Stockholm, Sweden → Stockholm, Sweden)
 
@@ -145,44 +145,76 @@ const MAJOR_US_CITIES = [
   'menlo park', 'palo alto', 'mountain view', 'cupertino', 'redwood city', 'rock hill',
 ];
 
-// City-to-Country mapping for standalone cities
+// City-to-Country mapping for standalone cities (expanded)
 const CITY_COUNTRY_MAP = {
   'stockholm': 'Sweden',
+  'gothenburg': 'Sweden',
+  'malmö': 'Sweden',
+  'malmo': 'Sweden',
   'london': 'United Kingdom',
+  'manchester': 'United Kingdom',
+  'birmingham': 'United Kingdom',
+  'edinburgh': 'United Kingdom',
+  'bristol': 'United Kingdom',
+  'leeds': 'United Kingdom',
   'dublin': 'Ireland',
+  'cork': 'Ireland',
   'paris': 'France',
+  'lyon': 'France',
+  'marseille': 'France',
   'berlin': 'Germany',
   'munich': 'Germany',
+  'frankfurt': 'Germany',
+  'hamburg': 'Germany',
+  'cologne': 'Germany',
   'amsterdam': 'Netherlands',
   'rotterdam': 'Netherlands',
+  'the hague': 'Netherlands',
   'singapore': 'Singapore',
   'hong kong': 'Hong Kong SAR',
   'tokyo': 'Japan',
   'osaka': 'Japan',
+  'yokohama': 'Japan',
   'sydney': 'Australia',
   'melbourne': 'Australia',
+  'brisbane': 'Australia',
+  'perth': 'Australia',
   'toronto': 'Canada',
   'vancouver': 'Canada',
   'montreal': 'Canada',
+  'ottawa': 'Canada',
+  'calgary': 'Canada',
   'zurich': 'Switzerland',
   'geneva': 'Switzerland',
+  'basel': 'Switzerland',
   'copenhagen': 'Denmark',
   'oslo': 'Norway',
   'helsinki': 'Finland',
   'brussels': 'Belgium',
   'vienna': 'Austria',
   'warsaw': 'Poland',
+  'krakow': 'Poland',
   'prague': 'Czech Republic',
   'lisbon': 'Portugal',
+  'porto': 'Portugal',
   'madrid': 'Spain',
   'barcelona': 'Spain',
+  'valencia': 'Spain',
   'milan': 'Italy',
   'rome': 'Italy',
+  'turin': 'Italy',
   'bangalore': 'India',
+  'bengaluru': 'India',
   'mumbai': 'India',
   'delhi': 'India',
+  'new delhi': 'India',
   'hyderabad': 'India',
+  'chennai': 'India',
+  'pune': 'India',
+  'gurgaon': 'India',
+  'noida': 'India',
   'tel aviv': 'Israel',
+  'jerusalem': 'Israel',
   'dubai': 'United Arab Emirates',
   'abu dhabi': 'United Arab Emirates',
   'kuala lumpur': 'Malaysia',
@@ -199,12 +231,18 @@ const CITY_COUNTRY_MAP = {
   'nairobi': 'Kenya',
   'lagos': 'Nigeria',
   'mexico city': 'Mexico',
+  'guadalajara': 'Mexico',
   'sao paulo': 'Brazil',
   'rio de janeiro': 'Brazil',
   'buenos aires': 'Argentina',
   'santiago': 'Chile',
   'bogota': 'Colombia',
   'lima': 'Peru',
+  'beijing': 'China',
+  'shanghai': 'China',
+  'shenzhen': 'China',
+  'guangzhou': 'China',
+  'hangzhou': 'China',
 };
 
 function detectPlatformForLocation() {
@@ -302,6 +340,7 @@ function extractLocationFromPageText(text) {
  * FIXED: Normalize location for CV - handles city duplication
  * "Stockholm, Stockholm, Sweden" → "Stockholm, Sweden"
  * "Hong Kong, Hong Kong SAR" → "Hong Kong SAR"
+ * "Rock Hill, SC" → "Rock Hill, SC, United States"
  */
 function normalizeLocationForCV(rawLocation) {
   if (!rawLocation) return 'Remote';
@@ -335,26 +374,29 @@ function normalizeLocationForCV(rawLocation) {
 }
 
 /**
- * Remove duplicate city/region parts and format as "City, Country"
+ * FIXED: Remove duplicate city/region parts and format as "City, Country"
  * "Stockholm, Stockholm, Sweden" → "Stockholm, Sweden"
  * "Rock Hill, SC" → "Rock Hill, SC, United States"
+ * "Singapore, Singapore" → "Singapore"
  */
 function deduplicateAndFormat(location) {
   if (!location) return 'Remote';
   
-  // Split by comma and deduplicate
+  // Split by comma and deduplicate (case-insensitive)
   const parts = location.split(/,\s*/);
   const uniqueParts = [];
   const seen = new Set();
   
   for (const part of parts) {
-    const normalized = part.toLowerCase().trim();
+    const trimmed = part.trim();
+    const normalized = trimmed.toLowerCase();
+    
     // Skip empty parts or already seen (case-insensitive)
     if (!normalized || normalized.length === 0) continue;
     if (seen.has(normalized)) continue;
     
     seen.add(normalized);
-    uniqueParts.push(part.trim());
+    uniqueParts.push(trimmed);
   }
   
   if (uniqueParts.length === 0) return 'Remote';
@@ -367,6 +409,10 @@ function deduplicateAndFormat(location) {
     // Check if it's a known city
     const inferredCountry = CITY_COUNTRY_MAP[cityLower];
     if (inferredCountry) {
+      // Special case: city IS the country (Singapore)
+      if (cityLower === inferredCountry.toLowerCase()) {
+        return inferredCountry;
+      }
       return `${city}, ${inferredCountry}`;
     }
     
@@ -381,6 +427,7 @@ function deduplicateAndFormat(location) {
   // Two or more parts
   const firstPart = uniqueParts[0];
   const lastPart = uniqueParts[uniqueParts.length - 1];
+  const lastPartLower = lastPart.toLowerCase();
   
   // Check if last part is a US state code (2 letters)
   if (/^[A-Z]{2}$/i.test(lastPart) && US_STATES[lastPart.toUpperCase()]) {
@@ -393,15 +440,21 @@ function deduplicateAndFormat(location) {
   
   // Normalize the country name
   const normalizedCountry = normalizeCountry(lastPart);
+  const firstPartLower = firstPart.toLowerCase();
   
   // Check if city IS the country (e.g., "Singapore, Singapore")
-  if (firstPart.toLowerCase() === normalizedCountry.toLowerCase()) {
+  if (firstPartLower === normalizedCountry.toLowerCase()) {
     return normalizedCountry;
   }
   
   // Check for Hong Kong style: "Hong Kong, Hong Kong SAR" 
-  if (firstPart.toLowerCase().includes('hong kong') && normalizedCountry.toLowerCase().includes('hong kong')) {
+  if (firstPartLower.includes('hong kong') && normalizedCountry.toLowerCase().includes('hong kong')) {
     return 'Hong Kong SAR';
+  }
+  
+  // Check for city-state patterns (e.g., "Monaco, Monaco")
+  if (firstPartLower === lastPartLower) {
+    return firstPart;
   }
   
   // Standard format: "City, Country"
@@ -472,6 +525,7 @@ function normalizeCountry(country) {
     'cl': 'Chile', 'chile': 'Chile',
     'co': 'Colombia', 'colombia': 'Colombia',
     'pe': 'Peru', 'peru': 'Peru',
+    'cn': 'China', 'china': 'China',
   };
   
   return countryMap[normalized] || country;
@@ -498,17 +552,20 @@ function getLocationPreview(rawLocation) {
 // Export
 if (typeof window !== 'undefined') {
   window.ATSLocationTailor = {
-    scrapeUniversalLocation,
     normalizeLocationForCV,
-    detectPlatformForLocation,
+    scrapeUniversalLocation,
     getLocationPreview,
-    isValidLocation,
-    deduplicateAndFormat,
     inferCountryFromCity,
-    UNIVERSAL_LOCATION_SELECTORS,
-    US_STATES,
-    CITY_COUNTRY_MAP,
+    deduplicateAndFormat,
   };
 }
 
-console.log('[ATS Hybrid] Universal Location Strategy v1.1 loaded (city deduplication fix)');
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    normalizeLocationForCV,
+    scrapeUniversalLocation,
+    getLocationPreview,
+    inferCountryFromCity,
+    deduplicateAndFormat,
+  };
+}
